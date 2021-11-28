@@ -6,8 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
-
-	"golang.org/x/sys/unix"
+	"syscall"
 )
 
 // IsSupported returns true if child process reaping is supported on this
@@ -29,7 +28,7 @@ func IsSupported() bool {
 // application should get a read lock when it wants to do a wait.
 func ReapChildren(pids PidCh, errors ErrorCh, done chan struct{}, reapLock *sync.RWMutex) {
 	c := make(chan os.Signal, 1)
-	signal.Notify(c, unix.SIGCHLD)
+	signal.Notify(c, syscall.SIGCHLD)
 
 	for {
 		// Block for an incoming signal that a child has exited.
@@ -57,8 +56,8 @@ func ReapChildren(pids PidCh, errors ErrorCh, done chan struct{}, reapLock *sync
 			// child behind if we get here too quickly. Any
 			// stragglers should get reaped the next time we see a
 			// signal, so we won't leak in the long run.
-			var status unix.WaitStatus
-			pid, err := unix.Wait4(-1, &status, unix.WNOHANG, nil)
+			var status syscall.WaitStatus
+			pid, err := syscall.Wait4(-1, &status, syscall.WNOHANG, nil)
 			switch err {
 			case nil:
 				// Got a child, clean this up and poll again.
@@ -70,11 +69,11 @@ func ReapChildren(pids PidCh, errors ErrorCh, done chan struct{}, reapLock *sync
 				}
 				return
 
-			case unix.ECHILD:
+			case syscall.ECHILD:
 				// No more children, we are done.
 				return
 
-			case unix.EINTR:
+			case syscall.EINTR:
 				// We got interrupted, try again. This likely
 				// can't happen since we are calling Wait4 in a
 				// non-blocking fashion, but it's good to be

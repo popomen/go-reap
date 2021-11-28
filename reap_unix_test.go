@@ -7,10 +7,9 @@ import (
 	"os/exec"
 	"runtime"
 	"sync"
+	"syscall"
 	"testing"
 	"time"
-
-	"golang.org/x/sys/unix"
 )
 
 func TestReap_IsSupported(t *testing.T) {
@@ -65,7 +64,7 @@ func TestReap_ReapChildren(t *testing.T) {
 	}
 
 	// Send a spurious SIGCHLD.
-	if err := unix.Kill(os.Getpid(), unix.SIGCHLD); err != nil {
+	if err := syscall.Kill(os.Getpid(), syscall.SIGCHLD); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
